@@ -120,7 +120,7 @@ var _ = Describe("TestServer", func() {
 			BeforeEach(func() {
 				s.Append(CombineHandlers(
 					VerifyRequest("POST", "/foo"),
-					Respond(http.StatusCreated, []byte("sweet")),
+					Respond(http.StatusCreated, "sweet"),
 				))
 			})
 
@@ -138,10 +138,10 @@ var _ = Describe("TestServer", func() {
 
 		Describe("ResponsePtr", func() {
 			var code int
-			var body []byte
+			var body string
 			BeforeEach(func() {
 				code = http.StatusOK
-				body = []byte("sweet")
+				body = "sweet"
 
 				s.Append(CombineHandlers(
 					VerifyRequest("POST", "/foo"),
@@ -151,7 +151,7 @@ var _ = Describe("TestServer", func() {
 
 			It("should return the response", func() {
 				code = http.StatusCreated
-				body = []byte("tasty")
+				body = "tasty"
 				resp, err = http.Post(urljoiner.Join(s.URL(), "/foo"), "application/json", nil)
 				Ω(err).ShouldNot(HaveOccurred())
 

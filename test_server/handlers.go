@@ -63,16 +63,16 @@ func VerifyJSON(expectedJSON string) http.HandlerFunc {
 	)
 }
 
-func Respond(statusCode int, body []byte) http.HandlerFunc {
+func Respond(statusCode int, body string) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(statusCode)
-		w.Write(body)
+		w.Write([]byte(body))
 	}
 }
 
-func RespondPtr(statusCode *int, body *[]byte) http.HandlerFunc {
+func RespondPtr(statusCode *int, body *string) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(*statusCode)
-		w.Write(*body)
+		w.Write([]byte(*body))
 	}
 }
