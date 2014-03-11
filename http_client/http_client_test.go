@@ -32,24 +32,7 @@ var _ = Describe("HttpClient", func() {
 	var client *http.Client
 
 	BeforeEach(func() {
-		client = New(true, 1*time.Millisecond)
-	})
-
-	Context("when the request times out (trying to connect)", func() {
-		It("should return an appropriate timeout error", func(done Done) {
-			request, _ := http.NewRequest("GET", "http://127.0.0.1:8887/", nil)
-			_, err := client.Do(request)
-			Ω(err).Should(HaveOccurred())
-			close(done)
-		}, 0.1)
-	})
-
-	Context("when the request times out (after conecting)", func() {
-		It("should return an appropriate timeout error", func() {
-			request, _ := http.NewRequest("GET", "http://127.0.0.1:8889/sleep?time=1", nil)
-			_, err := client.Do(request)
-			Ω(err).Should(HaveOccurred())
-		})
+		client = New(true)
 	})
 
 	Context("when the request does not time out", func() {
