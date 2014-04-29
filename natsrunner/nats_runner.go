@@ -55,9 +55,7 @@ func (runner *NATSRunner) Start() {
 
 func (runner *NATSRunner) Stop() {
 	if runner.natsSession != nil {
-		runner.natsSession.Command.Process.Kill()
-		runner.natsSession.Wait(time.Second)
-
+		runner.natsSession.Kill(time.Second)
 		runner.MessageBus = nil
 		runner.natsSession = nil
 	}
