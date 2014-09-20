@@ -1,7 +1,9 @@
 package natsclientrunner
 
 import (
+	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/cloudfoundry/yagnats"
@@ -18,6 +20,20 @@ func New(client yagnats.ApceraWrapperNATSClient, logger lager.Logger) Runner {
 		client: client,
 		logger: logger.Session("nats-runner"),
 	}
+}
+
+func NewClient(addresses, username, password string) yagnats.ApceraWrapperNATSClient {
+	natsMembers := []string{}
+	for _, addr := range strings.Split(addresses, ",") {
+		uri := url.URL{
+			Scheme: "nats",
+			User:   url.UserPassword(username, password),
+			Host:   addr,
+		}
+		natsMembers = append(natsMembers, uri.String())
+	}
+
+	return yagnats.NewApceraClientWrapper(natsMembers)
 }
 
 func (c Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
