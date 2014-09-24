@@ -45,20 +45,30 @@ var _ = Describe("Starting the NatsClientRunner process", func() {
 		natsClientRunner = New(natsClient, lagertest.NewTestLogger("test"))
 	})
 
+	AfterEach(func() {
+		if natsClientProcess != nil {
+			natsClientProcess.Signal(os.Interrupt)
+			Eventually(natsClientProcess.Wait(), 5).Should(Receive())
+		}
+	})
+
 	Describe("when NATS is up", func() {
 		BeforeEach(func() {
 			natsClientProcess = ifrit.Envoke(natsClientRunner)
-		})
-
-		AfterEach(func() {
-			natsClientProcess.Signal(os.Interrupt)
-			Eventually(natsClientProcess.Wait(), 5).Should(Receive())
 		})
 
 		It("connects to NATS", func() {
 			err := natsClient.Connect()
 			Ω(err).Should(HaveOccurred())
 			Ω(err.Error()).Should(Equal("already connected"))
+		})
+
+		It("disconnects when it receives a signal", func() {
+			natsClientProcess.Signal(os.Interrupt)
+			Eventually(natsClientProcess.Wait(), 5).Should(Receive())
+
+			err := natsClient.Connect()
+			Ω(err).ShouldNot(HaveOccurred())
 		})
 	})
 
@@ -74,11 +84,6 @@ var _ = Describe("Starting the NatsClientRunner process", func() {
 			}()
 		})
 
-		AfterEach(func() {
-			natsClientProcess.Signal(os.Interrupt)
-			Eventually(natsClientProcess.Wait(), 5).Should(Receive())
-		})
-
 		It("waits for NATS to come up and connects to NATS", func() {
 			Consistently(natsClientProcessChan).ShouldNot(Receive())
 			natsRunner.Start()
@@ -87,6 +92,18 @@ var _ = Describe("Starting the NatsClientRunner process", func() {
 			err := natsClient.Connect()
 			Ω(err).Should(HaveOccurred())
 			Ω(err.Error()).Should(Equal("already connected"))
+		})
+
+		It("disconnects when it receives a signal", func() {
+			Consistently(natsClientProcessChan).ShouldNot(Receive())
+			natsRunner.Start()
+			Eventually(natsClientProcessChan, 5*time.Second).Should(Receive(&natsClientProcess))
+
+			natsClientProcess.Signal(os.Interrupt)
+			Eventually(natsClientProcess.Wait(), 5).Should(Receive())
+
+			err := natsClient.Connect()
+			Ω(err).ShouldNot(HaveOccurred())
 		})
 	})
 })

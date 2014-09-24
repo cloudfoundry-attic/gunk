@@ -52,5 +52,6 @@ func (c Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	close(ready)
 
 	<-signals
+	c.client.Disconnect()
 	return nil
 }
