@@ -35,14 +35,13 @@ var _ = AfterSuite(func() {
 })
 
 var _ = Describe("Starting the NatsClientRunner process", func() {
-	var natsClient yagnats.ApceraWrapperNATSClient
+	var natsClient yagnats.NATSConn
 	var natsClientRunner ifrit.Runner
 	var natsClientProcess ifrit.Process
 
 	BeforeEach(func() {
 		natsAddress := fmt.Sprintf("127.0.0.1:%d", natsPort)
-		natsClient = NewClient(natsAddress, "nats", "nats")
-		natsClientRunner = New(natsClient, lagertest.NewTestLogger("test"))
+		natsClientRunner = New(natsAddress, "nats", "nats", lagertest.NewTestLogger("test"), &natsClient)
 	})
 
 	AfterEach(func() {
@@ -58,17 +57,14 @@ var _ = Describe("Starting the NatsClientRunner process", func() {
 		})
 
 		It("connects to NATS", func() {
-			err := natsClient.Connect()
-			Ω(err).Should(HaveOccurred())
-			Ω(err.Error()).Should(Equal("already connected"))
+			Ω(natsClient.Ping()).Should(BeTrue())
 		})
 
 		It("disconnects when it receives a signal", func() {
 			natsClientProcess.Signal(os.Interrupt)
 			Eventually(natsClientProcess.Wait(), 5).Should(Receive())
 
-			err := natsClient.Connect()
-			Ω(err).ShouldNot(HaveOccurred())
+			Ω(natsClient.Ping()).Should(BeFalse())
 		})
 	})
 
@@ -89,9 +85,7 @@ var _ = Describe("Starting the NatsClientRunner process", func() {
 			natsRunner.Start()
 			Eventually(natsClientProcessChan, 5*time.Second).Should(Receive(&natsClientProcess))
 
-			err := natsClient.Connect()
-			Ω(err).Should(HaveOccurred())
-			Ω(err.Error()).Should(Equal("already connected"))
+			Ω(natsClient.Ping()).Should(BeTrue())
 		})
 
 		It("disconnects when it receives a signal", func() {
@@ -102,8 +96,7 @@ var _ = Describe("Starting the NatsClientRunner process", func() {
 			natsClientProcess.Signal(os.Interrupt)
 			Eventually(natsClientProcess.Wait(), 5).Should(Receive())
 
-			err := natsClient.Connect()
-			Ω(err).ShouldNot(HaveOccurred())
+			Ω(natsClient.Ping()).Should(BeFalse())
 		})
 	})
 })
