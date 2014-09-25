@@ -11,46 +11,50 @@ import (
 )
 
 type Runner struct {
-	client yagnats.ApceraWrapperNATSClient
-	logger lager.Logger
+	addresses string
+	username  string
+	password  string
+	logger    lager.Logger
+	client    *yagnats.NATSConn
 }
 
-func New(client yagnats.ApceraWrapperNATSClient, logger lager.Logger) Runner {
+func New(addresses, username, password string, logger lager.Logger, client *yagnats.NATSConn) Runner {
 	return Runner{
-		client: client,
-		logger: logger.Session("nats-runner"),
+		addresses: addresses,
+		username:  username,
+		password:  password,
+		logger:    logger.Session("nats-runner"),
+		client:    client,
 	}
 }
 
-func NewClient(addresses, username, password string) yagnats.ApceraWrapperNATSClient {
+func (c Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	natsMembers := []string{}
-	for _, addr := range strings.Split(addresses, ",") {
+	for _, addr := range strings.Split(c.addresses, ",") {
 		uri := url.URL{
 			Scheme: "nats",
-			User:   url.UserPassword(username, password),
+			User:   url.UserPassword(c.username, c.password),
 			Host:   addr,
 		}
 		natsMembers = append(natsMembers, uri.String())
 	}
 
-	return yagnats.NewApceraClientWrapper(natsMembers)
-}
-
-func (c Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	err := c.client.Connect()
+	conn, err := yagnats.Connect(natsMembers)
 	for err != nil {
 		c.logger.Error("connecting-to-nats-failed", err)
 		select {
 		case <-signals:
 			return nil
 		case <-time.After(time.Second):
-			err = c.client.Connect()
+			conn, err = yagnats.Connect(natsMembers)
 		}
 	}
 
+	*c.client = conn
 	c.logger.Info("connecting-to-nats-succeeeded")
 	close(ready)
 
 	<-signals
+	conn.Close()
 	return nil
 }

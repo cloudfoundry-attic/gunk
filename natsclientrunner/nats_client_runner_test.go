@@ -7,6 +7,7 @@ import (
 	"time"
 
 	. "github.com/cloudfoundry/gunk/natsclientrunner"
+	"github.com/cloudfoundry/yagnats"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-golang/lager/lagertest"
@@ -34,48 +35,68 @@ var _ = AfterSuite(func() {
 })
 
 var _ = Describe("Starting the NatsClientRunner process", func() {
+	var natsClient yagnats.NATSConn
 	var natsClientRunner ifrit.Runner
+	var natsClientProcess ifrit.Process
 
 	BeforeEach(func() {
 		natsAddress := fmt.Sprintf("127.0.0.1:%d", natsPort)
-		natsClient := NewClient(natsAddress, "nats", "nats")
-		natsClientRunner = New(natsClient, lagertest.NewTestLogger("test"))
+		natsClientRunner = New(natsAddress, "nats", "nats", lagertest.NewTestLogger("test"), &natsClient)
+	})
+
+	AfterEach(func() {
+		if natsClientProcess != nil {
+			natsClientProcess.Signal(os.Interrupt)
+			Eventually(natsClientProcess.Wait(), 5).Should(Receive())
+		}
 	})
 
 	Describe("when NATS is up", func() {
-		It("waits for NATS to come up", func() {
-			natsClientProcess := ifrit.Envoke(natsClientRunner)
-			natsClientProcess.Signal(os.Interrupt)
+		BeforeEach(func() {
+			natsClientProcess = ifrit.Envoke(natsClientRunner)
+		})
 
-			// wait for process to terminate
+		It("connects to NATS", func() {
+			Ω(natsClient.Ping()).Should(BeTrue())
+		})
+
+		It("disconnects when it receives a signal", func() {
+			natsClientProcess.Signal(os.Interrupt)
 			Eventually(natsClientProcess.Wait(), 5).Should(Receive())
+
+			Ω(natsClient.Ping()).Should(BeFalse())
 		})
 	})
 
 	Describe("when NATS is not up", func() {
-		Context("and the stager is started", func() {
-			var natsClientProcessChan chan ifrit.Process
+		var natsClientProcessChan chan ifrit.Process
 
-			BeforeEach(func() {
-				natsRunner.Stop()
+		BeforeEach(func() {
+			natsRunner.Stop()
 
-				natsClientProcessChan = make(chan ifrit.Process, 1)
-				go func() {
-					natsClientProcessChan <- ifrit.Envoke(natsClientRunner)
-				}()
-			})
+			natsClientProcessChan = make(chan ifrit.Process, 1)
+			go func() {
+				natsClientProcessChan <- ifrit.Envoke(natsClientRunner)
+			}()
+		})
 
-			It("waits for NATS to come up", func() {
-				Consistently(natsClientProcessChan).ShouldNot(Receive())
+		It("waits for NATS to come up and connects to NATS", func() {
+			Consistently(natsClientProcessChan).ShouldNot(Receive())
+			natsRunner.Start()
+			Eventually(natsClientProcessChan, 5*time.Second).Should(Receive(&natsClientProcess))
 
-				natsRunner.Start()
+			Ω(natsClient.Ping()).Should(BeTrue())
+		})
 
-				var natsClientProcess ifrit.Process
-				Eventually(natsClientProcessChan, 5*time.Second).Should(Receive(&natsClientProcess))
+		It("disconnects when it receives a signal", func() {
+			Consistently(natsClientProcessChan).ShouldNot(Receive())
+			natsRunner.Start()
+			Eventually(natsClientProcessChan, 5*time.Second).Should(Receive(&natsClientProcess))
 
-				natsClientProcess.Signal(os.Interrupt)
-				Eventually(natsClientProcess.Wait(), 5).Should(Receive())
-			})
+			natsClientProcess.Signal(os.Interrupt)
+			Eventually(natsClientProcess.Wait(), 5).Should(Receive())
+
+			Ω(natsClient.Ping()).Should(BeFalse())
 		})
 	})
 })
