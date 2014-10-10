@@ -1,47 +1,27 @@
-package natsclientrunner_test
+package diegonats_test
 
 import (
 	"fmt"
 	"os"
-	"testing"
 	"time"
 
-	. "github.com/cloudfoundry/gunk/natsclientrunner"
-	"github.com/cloudfoundry/yagnats"
+	. "github.com/cloudfoundry/gunk/diegonats"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-golang/lager/lagertest"
 
-	"github.com/cloudfoundry/gunk/natsrunner"
 	"github.com/tedsuo/ifrit"
 )
 
-var natsRunner *natsrunner.NATSRunner
-var natsPort int
-
-func TestListener(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "NatsClientRunner Suite")
-}
-
-var _ = BeforeSuite(func() {
-	natsPort = 4001 + GinkgoParallelNode()
-	natsRunner = natsrunner.NewNATSRunner(natsPort)
-	natsRunner.Start()
-})
-
-var _ = AfterSuite(func() {
-	natsRunner.Stop()
-})
-
 var _ = Describe("Starting the NatsClientRunner process", func() {
-	var natsClient yagnats.NATSConn
+	var natsClient NATSClient
 	var natsClientRunner ifrit.Runner
 	var natsClientProcess ifrit.Process
 
 	BeforeEach(func() {
 		natsAddress := fmt.Sprintf("127.0.0.1:%d", natsPort)
-		natsClientRunner = New(natsAddress, "nats", "nats", lagertest.NewTestLogger("test"), &natsClient)
+		natsClient = NewClient()
+		natsClientRunner = NewClientRunner(natsAddress, "nats", "nats", lagertest.NewTestLogger("test"), natsClient)
 	})
 
 	AfterEach(func() {
