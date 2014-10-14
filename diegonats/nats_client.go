@@ -8,7 +8,7 @@ import (
 
 type NATSClient interface {
 	Connect(urls []string) (chan struct{}, error)
-	Disconnect()
+	Close()
 	Ping() bool
 	Unsubscribe(sub *nats.Subscription) error
 
@@ -47,7 +47,7 @@ func (nc *natsClient) Connect(urls []string) (chan struct{}, error) {
 	return closedChan, nil
 }
 
-func (nc *natsClient) Disconnect() {
+func (nc *natsClient) Close() {
 	if nc.Conn != nil {
 		nc.Conn.Close()
 	}

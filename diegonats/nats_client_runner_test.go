@@ -53,7 +53,7 @@ var _ = Describe("Starting the NatsClientRunner process", func() {
 		It("exits with an error when nats connection is closed permanently", func() {
 			errorChan := natsClientProcess.Wait()
 
-			natsClient.Disconnect()
+			natsClient.Close()
 
 			Eventually(errorChan).Should(Receive(Equal(errors.New("nats closed unexpectedly"))))
 		})

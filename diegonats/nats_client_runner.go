@@ -55,7 +55,7 @@ func (runner NATSClientRunner) Run(signals <-chan os.Signal, ready chan<- struct
 
 	select {
 	case <-signals:
-		runner.client.Disconnect()
+		runner.client.Close()
 	case <-unexpectedConnClosed:
 		runner.logger.Error("unexpected-nats-close", nil)
 		return errors.New("nats closed unexpectedly")

@@ -40,7 +40,7 @@ var _ = Describe("NatsClient", func() {
 
 		AfterEach(func() {
 			if natsClient != nil {
-				natsClient.Disconnect()
+				natsClient.Close()
 			}
 		})
 

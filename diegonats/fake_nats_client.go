@@ -55,7 +55,7 @@ func (f *FakeNATSClient) Connect(urls []string) (chan struct{}, error) {
 	return nil, f.connectError
 }
 
-func (f *FakeNATSClient) Disconnect() {
+func (f *FakeNATSClient) Close() {
 	f.Lock()
 	defer f.Unlock()
 
