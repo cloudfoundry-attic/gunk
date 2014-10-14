@@ -53,7 +53,7 @@ func (runner *NATSRunner) Start() {
 
 	natsClient := NewClient()
 	Eventually(func() error {
-		err = natsClient.Connect([]string{fmt.Sprintf("nats://127.0.0.1:%d", runner.port)})
+		_, err = natsClient.Connect([]string{fmt.Sprintf("nats://127.0.0.1:%d", runner.port)})
 		return err
 	}, 5, 0.1).ShouldNot(HaveOccurred())
 

@@ -7,7 +7,7 @@ import (
 )
 
 type NATSClient interface {
-	Connect(urls []string) error
+	Connect(urls []string) (chan struct{}, error)
 	Disconnect()
 	Ping() bool
 	Unsubscribe(sub *nats.Subscription) error
@@ -27,19 +27,24 @@ func NewClient() NATSClient {
 	return &natsClient{}
 }
 
-func (nc *natsClient) Connect(urls []string) error {
+func (nc *natsClient) Connect(urls []string) (chan struct{}, error) {
 	options := nats.DefaultOptions
 	options.Servers = urls
 	options.ReconnectWait = 500 * time.Millisecond
 	options.MaxReconnect = -1
 
+	closedChan := make(chan struct{})
+	options.ClosedCB = func(*nats.Conn) {
+		close(closedChan)
+	}
+
 	natsConnection, err := options.Connect()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	nc.Conn = natsConnection
-	return nil
+	return closedChan, nil
 }
 
 func (nc *natsClient) Disconnect() {

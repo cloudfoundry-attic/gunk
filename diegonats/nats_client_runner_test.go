@@ -1,6 +1,7 @@
 package diegonats_test
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -33,7 +34,7 @@ var _ = Describe("Starting the NatsClientRunner process", func() {
 
 	Describe("when NATS is up", func() {
 		BeforeEach(func() {
-			natsClientProcess = ifrit.Envoke(natsClientRunner)
+			natsClientProcess = ifrit.Invoke(natsClientRunner)
 		})
 
 		It("connects to NATS", func() {
@@ -46,6 +47,14 @@ var _ = Describe("Starting the NatsClientRunner process", func() {
 
 			Ω(natsClient.Ping()).Should(BeFalse())
 		})
+
+		It("exits with an error when nats connection is closed permanently", func() {
+			errorChan := natsClientProcess.Wait()
+
+			natsClient.Disconnect()
+
+			Eventually(errorChan).Should(Receive(Equal(errors.New("nats closed unexpectedly"))))
+		})
 	})
 
 	Describe("when NATS is not up", func() {
@@ -56,7 +65,7 @@ var _ = Describe("Starting the NatsClientRunner process", func() {
 
 			natsClientProcessChan = make(chan ifrit.Process, 1)
 			go func() {
-				natsClientProcessChan <- ifrit.Envoke(natsClientRunner)
+				natsClientProcessChan <- ifrit.Invoke(natsClientRunner)
 			}()
 		})
 

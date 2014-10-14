@@ -20,7 +20,7 @@ var _ = Describe("NatsClient", func() {
 
 	Describe("Connect", func() {
 		It("returns an error when connecting to an invalid address", func() {
-			err := natsClient.Connect([]string{"nats://cats:bats@127.0.0.1:4223"})
+			_, err := natsClient.Connect([]string{"nats://cats:bats@127.0.0.1:4223"})
 
 			Expect(err).Should(HaveOccurred())
 			Expect(err.Error()).To(Equal("nats: No servers available for connection"))
@@ -29,7 +29,7 @@ var _ = Describe("NatsClient", func() {
 
 	Describe("Subscription", func() {
 		BeforeEach(func() {
-			err := natsClient.Connect(natsUrls)
+			_, err := natsClient.Connect(natsUrls)
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 

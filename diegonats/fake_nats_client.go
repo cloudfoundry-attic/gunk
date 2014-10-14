@@ -48,11 +48,11 @@ func (f *FakeNATSClient) Reset() {
 	f.pingResponse = true
 }
 
-func (f *FakeNATSClient) Connect(urls []string) error {
+func (f *FakeNATSClient) Connect(urls []string) (chan struct{}, error) {
 	f.Lock()
 	defer f.Unlock()
 
-	return f.connectError
+	return nil, f.connectError
 }
 
 func (f *FakeNATSClient) Disconnect() {
