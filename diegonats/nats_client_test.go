@@ -14,8 +14,13 @@ var _ = Describe("NatsClient", func() {
 	var natsUrls []string
 
 	BeforeEach(func() {
+		startNATS()
 		natsUrls = []string{fmt.Sprintf("nats://127.0.0.1:%d", natsPort)}
 		natsClient = NewClient()
+	})
+
+	AfterEach(func() {
+		stopNATS()
 	})
 
 	Describe("Connect", func() {

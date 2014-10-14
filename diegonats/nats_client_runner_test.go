@@ -26,6 +26,7 @@ var _ = Describe("Starting the NatsClientRunner process", func() {
 	})
 
 	AfterEach(func() {
+		stopNATS()
 		if natsClientProcess != nil {
 			natsClientProcess.Signal(os.Interrupt)
 			Eventually(natsClientProcess.Wait(), 5).Should(Receive())
@@ -34,6 +35,7 @@ var _ = Describe("Starting the NatsClientRunner process", func() {
 
 	Describe("when NATS is up", func() {
 		BeforeEach(func() {
+			startNATS()
 			natsClientProcess = ifrit.Invoke(natsClientRunner)
 		})
 
@@ -61,8 +63,6 @@ var _ = Describe("Starting the NatsClientRunner process", func() {
 		var natsClientProcessChan chan ifrit.Process
 
 		BeforeEach(func() {
-			natsRunner.Stop()
-
 			natsClientProcessChan = make(chan ifrit.Process, 1)
 			go func() {
 				natsClientProcessChan <- ifrit.Invoke(natsClientRunner)
@@ -71,7 +71,7 @@ var _ = Describe("Starting the NatsClientRunner process", func() {
 
 		It("waits for NATS to come up and connects to NATS", func() {
 			Consistently(natsClientProcessChan).ShouldNot(Receive())
-			natsRunner.Start()
+			startNATS()
 			Eventually(natsClientProcessChan, 5*time.Second).Should(Receive(&natsClientProcess))
 
 			Ω(natsClient.Ping()).Should(BeTrue())
@@ -79,7 +79,7 @@ var _ = Describe("Starting the NatsClientRunner process", func() {
 
 		It("disconnects when it receives a signal", func() {
 			Consistently(natsClientProcessChan).ShouldNot(Receive())
-			natsRunner.Start()
+			startNATS()
 			Eventually(natsClientProcessChan, 5*time.Second).Should(Receive(&natsClientProcess))
 
 			natsClientProcess.Signal(os.Interrupt)

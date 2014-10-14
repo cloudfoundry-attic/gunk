@@ -6,6 +6,8 @@ import (
 	"github.com/cloudfoundry/gunk/diegonats"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/tedsuo/ifrit"
+	"github.com/tedsuo/ifrit/ginkgomon"
 )
 
 func TestDiegoNATS(t *testing.T) {
@@ -13,15 +15,20 @@ func TestDiegoNATS(t *testing.T) {
 	RunSpecs(t, "Diego NATS Suite")
 }
 
-var natsRunner *diegonats.NATSRunner
 var natsPort int
+var gnatsdProcess ifrit.Process
 
 var _ = BeforeSuite(func() {
 	natsPort = 4001 + GinkgoParallelNode()
-	natsRunner = diegonats.NewRunner(natsPort)
-	natsRunner.Start()
 })
 
 var _ = AfterSuite(func() {
-	natsRunner.Stop()
 })
+
+func startNATS() {
+	gnatsdProcess = ginkgomon.Invoke(diegonats.NewGnatsdTestRunner(natsPort))
+}
+
+func stopNATS() {
+	ginkgomon.Kill(gnatsdProcess)
+}
