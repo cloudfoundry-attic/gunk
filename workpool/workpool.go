@@ -24,7 +24,8 @@ var DefaultAround = AroundWorkFunc(func(work func()) {
 })
 
 func NewWorkPool(workers int) *WorkPool {
-	return New(workers, 0, AroundWorkFunc(DefaultAround))
+	// Pending = 1 to provide a weak FIFO guarantee
+	return New(workers, 1, AroundWorkFunc(DefaultAround))
 }
 
 func New(workers, pending int, aroundWork AroundWork) *WorkPool {
