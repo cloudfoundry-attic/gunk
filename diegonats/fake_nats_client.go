@@ -2,8 +2,10 @@ package diegonats
 
 import (
 	"sync"
+	"time"
 
 	"github.com/apcera/nats"
+	"github.com/nu7hatch/gouuid"
 )
 
 type FakeNATSClient struct {
@@ -123,6 +125,26 @@ func (f *FakeNATSClient) PublishRequest(subject, reply string, payload []byte) e
 	}
 
 	return nil
+}
+
+func (f *FakeNATSClient) Request(subj string, data []byte, timeout time.Duration) (m *nats.Msg, err error) {
+	guid, err := uuid.NewV4()
+	if err != nil {
+		return nil, err
+	}
+	respChan := make(chan *nats.Msg, 1)
+	f.Subscribe(guid.String(), func(msg *nats.Msg) {
+		respChan <- msg
+	})
+
+	f.PublishRequest(subj, guid.String(), data)
+
+	select {
+	case msg := <-respChan:
+		return msg, nil
+	case <-time.After(timeout):
+		return nil, nats.ErrTimeout
+	}
 }
 
 func (f *FakeNATSClient) Subscribe(subject string, callback nats.MsgHandler) (*nats.Subscription, error) {

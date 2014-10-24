@@ -15,6 +15,7 @@ type NATSClient interface {
 	// Via apcera/nats.Conn
 	Publish(subject string, data []byte) error
 	PublishRequest(subj, reply string, data []byte) error
+	Request(subj string, data []byte, timeout time.Duration) (m *nats.Msg, err error)
 	Subscribe(subject string, handler nats.MsgHandler) (*nats.Subscription, error)
 	QueueSubscribe(subject, queue string, handler nats.MsgHandler) (*nats.Subscription, error)
 }
