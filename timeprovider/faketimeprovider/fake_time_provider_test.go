@@ -49,4 +49,26 @@ var _ = Describe("FakeTimeProvider", func() {
 			Eventually(doneSleeping).Should(BeClosed())
 		})
 	})
+
+	Describe("WatcherCount", func() {
+		Context("when a timer is created", func() {
+			It("increments the watcher count", func() {
+				timeProvider.NewTimer(time.Second)
+				Ω(timeProvider.WatcherCount()).Should(Equal(1))
+
+				timeProvider.NewTimer(2 * time.Second)
+				Ω(timeProvider.WatcherCount()).Should(Equal(2))
+			})
+		})
+
+		Context("when a timer fires", func() {
+			It("increments the watcher count", func() {
+				timeProvider.NewTimer(time.Second)
+				Ω(timeProvider.WatcherCount()).Should(Equal(1))
+
+				timeProvider.Increment(time.Second)
+				Ω(timeProvider.WatcherCount()).Should(Equal(0))
+			})
+		})
+	})
 })

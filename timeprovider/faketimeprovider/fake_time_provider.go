@@ -71,6 +71,13 @@ func (provider *FakeTimeProvider) NewTicker(d time.Duration) timeprovider.Ticker
 	return NewFakeTicker(provider, d)
 }
 
+func (provider *FakeTimeProvider) WatcherCount() int {
+	provider.Mutex.Lock()
+	defer provider.Mutex.Unlock()
+
+	return len(provider.watchers)
+}
+
 func (provider *FakeTimeProvider) addTimeWatcher(tw timeWatcher) {
 	provider.Mutex.Lock()
 	provider.watchers[tw] = struct{}{}
