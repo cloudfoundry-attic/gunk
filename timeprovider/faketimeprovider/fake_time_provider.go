@@ -2,65 +2,87 @@ package faketimeprovider
 
 import (
 	"sync"
-
 	"time"
+
+	"github.com/cloudfoundry/gunk/timeprovider"
 )
 
-type FakeTimeProvider struct {
-	TimeToProvide time.Time
-
-	ProvideFakeChannels bool
-
-	RequestedTickerDurations map[string]time.Duration
-	TickerChannels           map[string]chan time.Time
-	tickerMutex              *sync.Mutex
+type timeWatcher interface {
+	timeUpdated(time.Time)
 }
 
-func New(timeToProvide time.Time) *FakeTimeProvider {
+type FakeTimeProvider struct {
+	sync.Mutex
+	now time.Time
+
+	watchers map[timeWatcher]struct{}
+}
+
+func New(now time.Time) *FakeTimeProvider {
 	return &FakeTimeProvider{
-		TimeToProvide:            timeToProvide,
-		RequestedTickerDurations: map[string]time.Duration{},
-		TickerChannels:           map[string]chan time.Time{},
-		tickerMutex:              &sync.Mutex{},
+		now:      now,
+		watchers: make(map[timeWatcher]struct{}),
 	}
 }
 
 func (provider *FakeTimeProvider) Time() time.Time {
-	return provider.TimeToProvide
+	return provider.Now()
 }
 
-func (provider *FakeTimeProvider) IncrementBySeconds(seconds uint64) {
-	provider.TimeToProvide = time.Unix(provider.TimeToProvide.Unix()+int64(seconds), 0)
+func (provider *FakeTimeProvider) Now() time.Time {
+	provider.Mutex.Lock()
+	defer provider.Mutex.Unlock()
+
+	return provider.now
 }
 
 func (provider *FakeTimeProvider) Increment(duration time.Duration) {
-	provider.TimeToProvide = provider.TimeToProvide.Add(duration)
-}
+	time.Sleep(10 * time.Millisecond)
 
-func (provider *FakeTimeProvider) NewTickerChannel(name string, d time.Duration) <-chan time.Time {
-	if !provider.ProvideFakeChannels {
-		return time.NewTicker(d).C
+	provider.Mutex.Lock()
+	now := provider.now.Add(duration)
+	provider.now = now
+
+	watchers := make([]timeWatcher, 0, len(provider.watchers))
+	for w, _ := range provider.watchers {
+		watchers = append(watchers, w)
 	}
+	provider.Mutex.Unlock()
 
-	provider.tickerMutex.Lock()
-	defer provider.tickerMutex.Unlock()
-
-	provider.RequestedTickerDurations[name] = d
-	provider.TickerChannels[name] = make(chan time.Time)
-
-	return provider.TickerChannels[name]
+	for _, w := range watchers {
+		w.timeUpdated(now)
+	}
 }
 
-func (provider *FakeTimeProvider) TickerChannelFor(name string) chan time.Time {
-	provider.tickerMutex.Lock()
-	defer provider.tickerMutex.Unlock()
-
-	return provider.TickerChannels[name]
+func (provider *FakeTimeProvider) IncrementBySeconds(seconds uint64) {
+	provider.Increment(time.Duration(seconds) * time.Second)
 }
 
-func (provider *FakeTimeProvider) TickerDurationFor(name string) time.Duration {
-	provider.tickerMutex.Lock()
-	defer provider.tickerMutex.Unlock()
+func (provider *FakeTimeProvider) NewTimer(d time.Duration) timeprovider.Timer {
+	timer := NewFakeTimer(provider, d)
+	provider.addTimeWatcher(timer)
 
-	return provider.RequestedTickerDurations[name]
+	return timer
+}
+
+func (provider *FakeTimeProvider) Sleep(d time.Duration) {
+	<-provider.NewTimer(d).C()
+}
+
+func (provider *FakeTimeProvider) NewTicker(d time.Duration) timeprovider.Ticker {
+	return NewFakeTicker(provider, d)
+}
+
+func (provider *FakeTimeProvider) addTimeWatcher(tw timeWatcher) {
+	provider.Mutex.Lock()
+	provider.watchers[tw] = struct{}{}
+	provider.Mutex.Unlock()
+
+	tw.timeUpdated(provider.Time())
+}
+
+func (provider *FakeTimeProvider) removeTimeWatcher(tw timeWatcher) {
+	provider.Mutex.Lock()
+	delete(provider.watchers, tw)
+	provider.Mutex.Unlock()
 }
