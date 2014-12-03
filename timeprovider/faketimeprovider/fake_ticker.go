@@ -24,8 +24,8 @@ func NewFakeTicker(provider *FakeTimeProvider, d time.Duration) *fakeTicker {
 	go func() {
 		for {
 			time := <-timer.C()
-			channel <- time
 			timer.Reset(d)
+			channel <- time
 		}
 	}()
 

@@ -37,8 +37,6 @@ func (provider *FakeTimeProvider) Now() time.Time {
 }
 
 func (provider *FakeTimeProvider) Increment(duration time.Duration) {
-	time.Sleep(10 * time.Millisecond)
-
 	provider.Mutex.Lock()
 	now := provider.now.Add(duration)
 	provider.now = now
