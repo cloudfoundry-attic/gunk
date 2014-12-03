@@ -3,7 +3,7 @@ package timeprovider
 import "time"
 
 type TimeProvider interface {
-	Time() time.Time
+	Now() time.Time
 	Sleep(d time.Duration)
 
 	NewTimer(d time.Duration) Timer
@@ -16,7 +16,7 @@ func NewTimeProvider() (provider *RealTimeProvider) {
 	return &RealTimeProvider{}
 }
 
-func (provider *RealTimeProvider) Time() time.Time {
+func (provider *RealTimeProvider) Now() time.Time {
 	return time.Now()
 }
 

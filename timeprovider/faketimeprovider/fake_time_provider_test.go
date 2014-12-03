@@ -22,10 +22,10 @@ var _ = Describe("FakeTimeProvider", func() {
 		timeProvider = faketimeprovider.New(initialTime)
 	})
 
-	Describe("Time", func() {
+	Describe("Now", func() {
 		It("returns the current time, w/o race conditions", func() {
 			go timeProvider.Increment(time.Minute)
-			Eventually(timeProvider.Time).Should(Equal(initialTime.Add(time.Minute)))
+			Eventually(timeProvider.Now).Should(Equal(initialTime.Add(time.Minute)))
 		})
 	})
 

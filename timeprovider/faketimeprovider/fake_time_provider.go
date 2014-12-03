@@ -25,10 +25,6 @@ func New(now time.Time) *FakeTimeProvider {
 	}
 }
 
-func (provider *FakeTimeProvider) Time() time.Time {
-	return provider.Now()
-}
-
 func (provider *FakeTimeProvider) Now() time.Time {
 	provider.Mutex.Lock()
 	defer provider.Mutex.Unlock()
@@ -83,7 +79,7 @@ func (provider *FakeTimeProvider) addTimeWatcher(tw timeWatcher) {
 	provider.watchers[tw] = struct{}{}
 	provider.Mutex.Unlock()
 
-	tw.timeUpdated(provider.Time())
+	tw.timeUpdated(provider.Now())
 }
 
 func (provider *FakeTimeProvider) removeTimeWatcher(tw timeWatcher) {
