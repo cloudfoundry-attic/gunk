@@ -55,10 +55,7 @@ func (runner NATSClientRunner) Run(signals <-chan os.Signal, ready chan<- struct
 
 	select {
 	case <-signals:
-		// BUG(tedsuo): until we have ordered group shutdown, closing the client
-		// causes unexpected behavior. https://www.pivotaltracker.com/story/show/81411580
-
-		//	runner.client.Close()
+		runner.client.Close()
 		runner.logger.Info("shutting-down")
 		return nil
 	case <-unexpectedConnClosed:
