@@ -1,7 +1,6 @@
 package workpool_test
 
 import (
-	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -128,6 +127,7 @@ var _ = Describe("Workpool", func() {
 					var count int32
 					go func() {
 						pool.Submit(func() {
+							defer GinkgoRecover()
 							Ω(atomic.CompareAndSwapInt32(&count, 1, 2)).Should(BeTrue())
 						})
 						Ω(atomic.CompareAndSwapInt32(&count, 0, 1)).Should(BeTrue())
@@ -142,16 +142,10 @@ var _ = Describe("Workpool", func() {
 		})
 
 		Context("when stopped", func() {
-			var numGoroutines int
-
-			JustBeforeEach(func() {
-				numGoroutines = runtime.NumGoroutine()
-				pool.Stop()
-			})
-
 			It("should never perform the work", func() {
-				called := make(chan bool, 1)
+				pool.Stop()
 
+				called := make(chan bool, 1)
 				pool.Submit(func() {
 					called <- true
 				})
@@ -160,7 +154,18 @@ var _ = Describe("Workpool", func() {
 			})
 
 			It("should stop the workers", func() {
-				Eventually(runtime.NumGoroutine, 0.1, 0.01).Should(Equal(numGoroutines-2), "Should have reduced number of go routines by pool size")
+				called := make(chan bool)
+				pool.Submit(func() {
+					called <- true
+				})
+
+				Eventually(called).Should(Receive())
+
+				pool.Stop()
+				Eventually(func() int {
+					_, active := pool.Stats()
+					return active
+				}).Should(Equal(0), "Should have reduced number of go routines by pool size")
 			})
 		})
 
