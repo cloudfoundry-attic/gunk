@@ -123,6 +123,12 @@ func (r *FakeCommandRunner) Start(cmd *exec.Cmd) error {
 		}
 	}
 
+	r.RLock()
+	if r.process != nil {
+		cmd.Process = r.process
+	}
+	r.RUnlock()
+
 	return nil
 }
 
