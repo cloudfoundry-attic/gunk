@@ -93,15 +93,19 @@ func (r *FakeCommandRunner) Run(cmd *exec.Cmd) error {
 		}
 	}
 
+	r.RLock()
 	if r.process != nil {
 		cmd.Process = r.process
 	}
+	r.RUnlock()
 
 	return nil
 }
 
 func (r *FakeCommandRunner) RunInjectsProcessToCmd(process *os.Process) {
+	r.Lock()
 	r.process = process
+	r.Unlock()
 }
 
 func (r *FakeCommandRunner) Start(cmd *exec.Cmd) error {
