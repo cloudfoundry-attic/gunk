@@ -40,7 +40,7 @@ var _ = Describe("Starting the NatsClientRunner process", func() {
 		})
 
 		It("connects to NATS", func() {
-			Ω(natsClient.Ping()).Should(BeTrue())
+			Expect(natsClient.Ping()).To(BeTrue())
 		})
 
 		It("disconnects when it receives a signal", func() {
@@ -75,7 +75,7 @@ var _ = Describe("Starting the NatsClientRunner process", func() {
 			startNATS()
 			Eventually(natsClientProcessChan, 5*time.Second).Should(Receive(&natsClientProcess))
 
-			Ω(natsClient.Ping()).Should(BeTrue())
+			Expect(natsClient.Ping()).To(BeTrue())
 		})
 
 		It("disconnects when it receives a signal", func() {

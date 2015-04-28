@@ -30,20 +30,20 @@ var _ = Describe("TestServer", func() {
 			s.AllowUnhandledRequests = true
 			s.UnhandledRequestStatusCode = http.StatusForbidden
 			resp, err = http.Get(urljoiner.Join(s.URL(), "/foo"))
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("should allow unhandled requests and respond with the passed in status code", func() {
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(resp.StatusCode).Should(Equal(http.StatusForbidden))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp.StatusCode).To(Equal(http.StatusForbidden))
 
 			data, err := ioutil.ReadAll(resp.Body)
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(data).Should(BeEmpty())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(data).To(BeEmpty())
 		})
 
 		It("should record the requests", func() {
-			Ω(s.ReceivedRequestsCount()).Should(Equal(1))
+			Expect(s.ReceivedRequestsCount()).To(Equal(1))
 		})
 	})
 
@@ -55,13 +55,13 @@ var _ = Describe("TestServer", func() {
 
 			It("should verify the method, path", func() {
 				resp, err = http.Get(urljoiner.Join(s.URL(), "/foo?baz=bar"))
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("should also be possible to verify the rawQuery", func() {
 				s.Set(0, VerifyRequest("GET", "/foo", "baz=bar"))
 				resp, err = http.Get(urljoiner.Join(s.URL(), "/foo?baz=bar"))
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 			})
 		})
 
@@ -75,11 +75,11 @@ var _ = Describe("TestServer", func() {
 
 			It("should verify the content type", func() {
 				req, err := http.NewRequest("GET", urljoiner.Join(s.URL(), "/foo"), nil)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 				req.Header.Set("Content-Type", "application/octet-stream")
 
 				resp, err = http.DefaultClient.Do(req)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 			})
 		})
 
@@ -93,11 +93,11 @@ var _ = Describe("TestServer", func() {
 
 			It("should verify basic auth", func() {
 				req, err := http.NewRequest("GET", urljoiner.Join(s.URL(), "/foo"), nil)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 				req.SetBasicAuth("bob", "password")
 
 				resp, err = http.DefaultClient.Do(req)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 			})
 		})
 
@@ -111,7 +111,7 @@ var _ = Describe("TestServer", func() {
 
 			It("should verify the json body and the content type", func() {
 				resp, err = http.Post(urljoiner.Join(s.URL(), "/foo"), "application/json", bytes.NewReader([]byte(`{"b":2, "a":3}`)))
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 			})
 		})
 
@@ -125,13 +125,13 @@ var _ = Describe("TestServer", func() {
 
 			It("should return the response", func() {
 				resp, err = http.Post(urljoiner.Join(s.URL(), "/foo"), "application/json", nil)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
-				Ω(resp.StatusCode).Should(Equal(http.StatusCreated))
+				Expect(resp.StatusCode).To(Equal(http.StatusCreated))
 
 				body, err := ioutil.ReadAll(resp.Body)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(body).Should(Equal([]byte("sweet")))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(body).To(Equal([]byte("sweet")))
 			})
 		})
 
@@ -152,13 +152,13 @@ var _ = Describe("TestServer", func() {
 				code = http.StatusCreated
 				body = "tasty"
 				resp, err = http.Post(urljoiner.Join(s.URL(), "/foo"), "application/json", nil)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
-				Ω(resp.StatusCode).Should(Equal(http.StatusCreated))
+				Expect(resp.StatusCode).To(Equal(http.StatusCreated))
 
 				body, err := ioutil.ReadAll(resp.Body)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(body).Should(Equal([]byte("tasty")))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(body).To(Equal([]byte("tasty")))
 			})
 		})
 	})

@@ -18,17 +18,17 @@ func CombineHandlers(handlers ...http.HandlerFunc) http.HandlerFunc {
 
 func VerifyRequest(method string, path string, rawQuery ...string) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
-		Ω(req.Method).Should(Equal(method), "Method mismatch")
-		Ω(req.URL.Path).Should(Equal(path), "Path mismatch")
+		Expect(req.Method).To(Equal(method), "Method mismatch")
+		Expect(req.URL.Path).To(Equal(path), "Path mismatch")
 		if len(rawQuery) > 0 {
-			Ω(req.URL.RawQuery).Should(Equal(rawQuery[0]), "RawQuery mismatch")
+			Expect(req.URL.RawQuery).To(Equal(rawQuery[0]), "RawQuery mismatch")
 		}
 	}
 }
 
 func VerifyContentType(contentType string) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
-		Ω(req.Header.Get("Content-Type")).Should(Equal(contentType))
+		Expect(req.Header.Get("Content-Type")).To(Equal(contentType))
 	}
 }
 
@@ -36,9 +36,9 @@ func VerifyBasicAuth(username string, password string) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		auth := req.Header.Get("Authorization")
 		decoded, err := base64.StdEncoding.DecodeString(auth[6:])
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
-		Ω(string(decoded)).Should(Equal(fmt.Sprintf("%s:%s", username, password)), "Authorization mismatch")
+		Expect(string(decoded)).To(Equal(fmt.Sprintf("%s:%s", username, password)), "Authorization mismatch")
 	}
 }
 
@@ -57,8 +57,8 @@ func VerifyJSON(expectedJSON string) http.HandlerFunc {
 		func(w http.ResponseWriter, req *http.Request) {
 			body, err := ioutil.ReadAll(req.Body)
 			req.Body.Close()
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(body).Should(MatchJSON(expectedJSON), "JSON Mismatch")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(body).To(MatchJSON(expectedJSON), "JSON Mismatch")
 		},
 	)
 }

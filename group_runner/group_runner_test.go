@@ -2,12 +2,12 @@ package group_runner_test
 
 import (
 	"errors"
-	"os"
-	"syscall"
-	"time"
 	. "github.com/cloudfoundry/gunk/group_runner"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/fake_runner"
+	"os"
+	"syscall"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -186,11 +186,12 @@ var _ = Describe("GroupRunner", func() {
 				It("returns an error indicating which child processes failed", func() {
 					var err error
 					Eventually(groupProcess.Wait()).Should(Receive(&err))
-					Ω(err).Should(Equal(ExitTrace{
+					Expect(err).To(Equal(ExitTrace{
 						{Member{"child1", childRunner1}, nil},
 						{Member{"child2", childRunner2}, errors.New("Fail")},
 						{Member{"child3", childRunner3}, nil},
 					}))
+
 				})
 			})
 		})

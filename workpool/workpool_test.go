@@ -75,8 +75,8 @@ var _ = Describe("Workpool", func() {
 
 					It("should run the functions concurrently", func() {
 						Eventually(runTimes, 0.1, 0.01).Should(HaveLen(2))
-						Ω(<-runTimes).Should(BeNumerically("<=", sleepTime+sleepTime/2))
-						Ω(<-runTimes).Should(BeNumerically("<=", sleepTime+sleepTime/2))
+						Expect(<-runTimes).To(BeNumerically("<=", sleepTime+sleepTime/2))
+						Expect(<-runTimes).To(BeNumerically("<=", sleepTime+sleepTime/2))
 					})
 				})
 
@@ -91,11 +91,11 @@ var _ = Describe("Workpool", func() {
 						Eventually(runTimes, 0.1, 0.01).Should(HaveLen(3))
 
 						//first batch
-						Ω(<-runTimes).Should(BeNumerically("<=", sleepTime+sleepTime/2))
-						Ω(<-runTimes).Should(BeNumerically("<=", sleepTime+sleepTime/2))
+						Expect(<-runTimes).To(BeNumerically("<=", sleepTime+sleepTime/2))
+						Expect(<-runTimes).To(BeNumerically("<=", sleepTime+sleepTime/2))
 
 						//second batch
-						Ω(<-runTimes).Should(BeNumerically(">=", sleepTime*2))
+						Expect(<-runTimes).To(BeNumerically(">=", sleepTime*2))
 					})
 				})
 			})
@@ -128,9 +128,9 @@ var _ = Describe("Workpool", func() {
 					go func() {
 						pool.Submit(func() {
 							defer GinkgoRecover()
-							Ω(atomic.CompareAndSwapInt32(&count, 1, 2)).Should(BeTrue())
+							Expect(atomic.CompareAndSwapInt32(&count, 1, 2)).To(BeTrue())
 						})
-						Ω(atomic.CompareAndSwapInt32(&count, 0, 1)).Should(BeTrue())
+						Expect(atomic.CompareAndSwapInt32(&count, 0, 1)).To(BeTrue())
 					}()
 
 					Eventually(func() int32 { return atomic.LoadInt32(&count) }).Should(Equal(int32(1)))
