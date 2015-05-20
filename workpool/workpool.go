@@ -1,6 +1,7 @@
 package workpool
 
 import (
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -10,18 +11,7 @@ const (
 	waitTimeout = 5 * time.Second
 )
 
-type AroundWork interface {
-	Around(func())
-}
-
-type AroundWorkFunc func(work func())
-
-func (f AroundWorkFunc) Around(work func()) {
-	f(work)
-}
-
 type WorkPool struct {
-	around   AroundWork
 	workQ    chan func()
 	stopping chan struct{}
 	stopped  int32
@@ -32,23 +22,26 @@ type WorkPool struct {
 	idleWorkers int
 }
 
-var DefaultAround = AroundWorkFunc(func(work func()) {
-	work()
-})
-
-func NewWorkPool(workers int) *WorkPool {
-	return New(workers, 0, AroundWorkFunc(DefaultAround))
+func NewWorkPool(workers int) (*WorkPool, error) {
+	return New(workers, 0)
 }
 
-func New(workers, pending int, aroundWork AroundWork) *WorkPool {
+func New(workers, pending int) (*WorkPool, error) {
+	if workers < 1 || pending < 0 {
+		return nil, fmt.Errorf(
+			"must provide positive workers and non-negative pending; provided %d workers and %d pending",
+			workers,
+			pending,
+		)
+	}
+
 	w := &WorkPool{
-		around:     aroundWork,
 		workQ:      make(chan func(), workers+pending),
 		stopping:   make(chan struct{}),
 		maxWorkers: workers,
 	}
 
-	return w
+	return w, nil
 }
 
 func (w *WorkPool) Submit(work func()) {
@@ -111,10 +104,6 @@ func (w *WorkPool) workerStopping(force bool) bool {
 	return true
 }
 
-func (w *WorkPool) invoke(work func()) {
-	w.around.Around(work)
-}
-
 func (w *WorkPool) drain() {
 	for {
 		select {
@@ -155,7 +144,7 @@ func worker(w *WorkPool) {
 
 		NOWORK:
 			for {
-				w.invoke(work)
+				work()
 				select {
 				case work = <-w.workQ:
 				case <-w.stopping:

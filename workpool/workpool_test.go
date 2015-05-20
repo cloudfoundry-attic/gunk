@@ -15,19 +15,37 @@ var _ = Describe("Workpool", func() {
 	var pool *WorkPool
 	var poolSize int
 	var pendingSize int
-	var around func(work func())
 
 	BeforeEach(func() {
 		poolSize = 2
-		around = DefaultAround
-	})
-
-	JustBeforeEach(func() {
-		pool = New(poolSize, pendingSize, AroundWorkFunc(around))
 	})
 
 	AfterEach(func() {
-		pool.Stop()
+		if pool != nil {
+			pool.Stop()
+		}
+	})
+
+	Context("when the number of workers is non-positive", func() {
+		BeforeEach(func() {
+			poolSize = 0
+		})
+
+		It("errors", func() {
+			_, err := New(poolSize, pendingSize)
+			Expect(err).To(HaveOccurred())
+		})
+	})
+
+	Context("when the number of allowed pending workers is negative", func() {
+		BeforeEach(func() {
+			pendingSize = -1
+		})
+
+		It("errors", func() {
+			_, err := New(poolSize, pendingSize)
+			Expect(err).To(HaveOccurred())
+		})
 	})
 
 	Describe("scheduling work", func() {
@@ -38,6 +56,10 @@ var _ = Describe("Workpool", func() {
 
 			Context("when passed one work", func() {
 				It("should run the passed in function", func() {
+					var err error
+					pool, err = New(poolSize, pendingSize)
+					Expect(err).NotTo(HaveOccurred())
+
 					called := make(chan bool)
 
 					pool.Submit(func() {
@@ -68,12 +90,14 @@ var _ = Describe("Workpool", func() {
 				})
 
 				Context("when passed poolSize work", func() {
-					JustBeforeEach(func() {
-						pool.Submit(work)
-						pool.Submit(work)
-					})
-
 					It("should run the functions concurrently", func() {
+						var err error
+						pool, err = New(poolSize, pendingSize)
+						Expect(err).NotTo(HaveOccurred())
+
+						pool.Submit(work)
+						pool.Submit(work)
+
 						Eventually(runTimes, 0.1, 0.01).Should(HaveLen(2))
 						Expect(<-runTimes).To(BeNumerically("<=", sleepTime+sleepTime/2))
 						Expect(<-runTimes).To(BeNumerically("<=", sleepTime+sleepTime/2))
@@ -81,13 +105,15 @@ var _ = Describe("Workpool", func() {
 				})
 
 				Context("when passed more than poolSize work", func() {
-					JustBeforeEach(func() {
-						pool.Submit(work)
-						pool.Submit(work)
-						pool.Submit(work)
-					})
-
 					It("should run all the functions, but at most poolSize at a time", func() {
+						var err error
+						pool, err = New(poolSize, pendingSize)
+						Expect(err).NotTo(HaveOccurred())
+
+						pool.Submit(work)
+						pool.Submit(work)
+						pool.Submit(work)
+
 						Eventually(runTimes, 0.1, 0.01).Should(HaveLen(3))
 
 						//first batch
@@ -108,6 +134,10 @@ var _ = Describe("Workpool", func() {
 
 			Context("when passed more than poolSize work", func() {
 				It("should not block the caller", func() {
+					var err error
+					pool, err = New(poolSize, pendingSize)
+					Expect(err).NotTo(HaveOccurred())
+
 					barrier := make(chan struct{})
 					wg := sync.WaitGroup{}
 
@@ -143,6 +173,10 @@ var _ = Describe("Workpool", func() {
 
 		Context("when stopped", func() {
 			It("should never perform the work", func() {
+				var err error
+				pool, err = New(poolSize, pendingSize)
+				Expect(err).NotTo(HaveOccurred())
+
 				pool.Stop()
 
 				called := make(chan bool, 1)
@@ -154,6 +188,10 @@ var _ = Describe("Workpool", func() {
 			})
 
 			It("should stop the workers", func() {
+				var err error
+				pool, err = New(poolSize, pendingSize)
+				Expect(err).NotTo(HaveOccurred())
+
 				called := make(chan bool)
 				pool.Submit(func() {
 					called <- true
@@ -166,26 +204,6 @@ var _ = Describe("Workpool", func() {
 					_, active := pool.Stats()
 					return active
 				}).Should(Equal(0), "Should have reduced number of go routines by pool size")
-			})
-		})
-
-		Context("when around is provided", func() {
-			var count int32
-
-			BeforeEach(func() {
-				count = 0
-				around = func(work func()) {
-					atomic.AddInt32(&count, 1)
-				}
-			})
-			It("is called for each work", func() {
-				work := func() {}
-				pool.Submit(work)
-				pool.Submit(work)
-
-				Eventually(func() int32 {
-					return atomic.LoadInt32(&count)
-				}).Should(Equal(int32(2)))
 			})
 		})
 	})
