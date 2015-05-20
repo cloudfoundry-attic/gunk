@@ -46,7 +46,7 @@ func VerifyHeader(header http.Header) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		for key, values := range header {
 			key = http.CanonicalHeaderKey(key)
-			Ω(req.Header[key]).Should(Equal(values), "Header mismatch for key: %s", key)
+			Expect(req.Header[key]).To(Equal(values), "Header mismatch for key: %s", key)
 		}
 	}
 }
