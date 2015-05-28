@@ -7,14 +7,12 @@ import (
 	"time"
 )
 
-const (
-	waitTimeout = 5 * time.Second
-)
+const waitTimeout = 5 * time.Second
 
 type WorkPool struct {
-	workQ    chan func()
-	stopping chan struct{}
-	stopped  int32
+	workQueue chan func()
+	stopping  chan struct{}
+	stopped   int32
 
 	mutex       sync.Mutex
 	maxWorkers  int
@@ -22,23 +20,23 @@ type WorkPool struct {
 	idleWorkers int
 }
 
-func NewWorkPool(workers int) (*WorkPool, error) {
-	return New(workers, 0)
+func NewWorkPool(maxWorkers int) (*WorkPool, error) {
+	return newWorkPoolWithPending(maxWorkers, 0)
 }
 
-func New(workers, pending int) (*WorkPool, error) {
-	if workers < 1 || pending < 0 {
+func newWorkPoolWithPending(maxWorkers, pending int) (*WorkPool, error) {
+	if maxWorkers < 1 || pending < 0 {
 		return nil, fmt.Errorf(
-			"must provide positive workers and non-negative pending; provided %d workers and %d pending",
-			workers,
+			"must provide positive maxWorkers and non-negative pending; provided %d maxWorkers and %d pending",
+			maxWorkers,
 			pending,
 		)
 	}
 
 	w := &WorkPool{
-		workQ:      make(chan func(), workers+pending),
+		workQueue:  make(chan func(), maxWorkers+pending),
 		stopping:   make(chan struct{}),
-		maxWorkers: workers,
+		maxWorkers: maxWorkers,
 	}
 
 	return w, nil
@@ -50,7 +48,7 @@ func (w *WorkPool) Submit(work func()) {
 	}
 
 	select {
-	case w.workQ <- work:
+	case w.workQueue <- work:
 		if atomic.LoadInt32(&w.stopped) == 1 {
 			w.drain()
 		} else {
@@ -65,15 +63,6 @@ func (w *WorkPool) Stop() {
 		close(w.stopping)
 		w.drain()
 	}
-}
-
-func (w *WorkPool) Stats() (total int, active int) {
-	w.mutex.Lock()
-	total = w.numWorkers
-	active = total - w.idleWorkers
-	w.mutex.Unlock()
-
-	return
 }
 
 func (w *WorkPool) addWorker() bool {
@@ -92,7 +81,7 @@ func (w *WorkPool) addWorker() bool {
 func (w *WorkPool) workerStopping(force bool) bool {
 	w.mutex.Lock()
 	if !force {
-		if len(w.workQ) < w.numWorkers {
+		if len(w.workQueue) < w.numWorkers {
 			w.mutex.Unlock()
 			return false
 		}
@@ -107,7 +96,7 @@ func (w *WorkPool) workerStopping(force bool) bool {
 func (w *WorkPool) drain() {
 	for {
 		select {
-		case <-w.workQ:
+		case <-w.workQueue:
 		default:
 			return
 		}
@@ -135,7 +124,7 @@ func worker(w *WorkPool) {
 			w.workerStopping(true)
 			return
 
-		case work := <-w.workQ:
+		case work := <-w.workQueue:
 			timer.Stop()
 
 			w.mutex.Lock()
@@ -146,7 +135,7 @@ func worker(w *WorkPool) {
 			for {
 				work()
 				select {
-				case work = <-w.workQ:
+				case work = <-w.workQueue:
 				case <-w.stopping:
 					break NOWORK
 				default:

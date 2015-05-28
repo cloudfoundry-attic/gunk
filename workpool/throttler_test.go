@@ -7,18 +7,18 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("WorkPool", func() {
-	var pool *workpool.WorkPool
+var _ = Describe("Throttler", func() {
+	var throttler *workpool.Throttler
 
 	AfterEach(func() {
-		if pool != nil {
-			pool.Stop()
+		if throttler != nil {
+			throttler.Stop()
 		}
 	})
 
 	Context("when max workers is non-positive", func() {
 		It("errors", func() {
-			_, err := workpool.NewWorkPool(0)
+			_, err := workpool.NewThrottler(0, []func(){})
 			Expect(err).To(HaveOccurred())
 		})
 	})
@@ -36,10 +36,6 @@ var _ = Describe("WorkPool", func() {
 				calledChan <- struct{}{}
 				<-unblockChan
 			}
-
-			var err error
-			pool, err = workpool.NewWorkPool(maxWorkers)
-			Expect(err).NotTo(HaveOccurred())
 		})
 
 		AfterEach(func() {
@@ -47,12 +43,21 @@ var _ = Describe("WorkPool", func() {
 			close(unblockChan)
 		})
 
-		Describe("Submit", func() {
-			Context("when submitting less work than the max number of workers", func() {
-				It("should run the passed-in work", func() {
-					for i := 0; i < maxWorkers-1; i++ {
-						pool.Submit(work)
+		Describe("Start", func() {
+			Context("when requesting less work than the max number of workers", func() {
+				BeforeEach(func() {
+					works := make([]func(), maxWorkers-1)
+					for i := range works {
+						works[i] = work
 					}
+
+					var err error
+					throttler, err = workpool.NewThrottler(maxWorkers, works)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("should run the passed-in work", func() {
+					throttler.Start()
 
 					for i := 0; i < maxWorkers-1; i++ {
 						Eventually(calledChan).Should(Receive())
@@ -61,10 +66,19 @@ var _ = Describe("WorkPool", func() {
 			})
 
 			Context("when submitting work equal to the number of workers", func() {
-				It("should run the passed-in work concurrently", func() {
-					for i := 0; i < maxWorkers; i++ {
-						pool.Submit(work)
+				BeforeEach(func() {
+					works := make([]func(), maxWorkers)
+					for i := range works {
+						works[i] = work
 					}
+
+					var err error
+					throttler, err = workpool.NewThrottler(maxWorkers, works)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("should run the passed-in work concurrently", func() {
+					throttler.Start()
 
 					for i := 0; i < maxWorkers; i++ {
 						Eventually(calledChan).Should(Receive())
@@ -73,10 +87,19 @@ var _ = Describe("WorkPool", func() {
 			})
 
 			Context("when submitting more work than the max number of workers", func() {
-				It("should run the passed-in work concurrently up to the max number of workers at a time", func() {
-					for i := 0; i < maxWorkers+1; i++ {
-						pool.Submit(work)
+				BeforeEach(func() {
+					works := make([]func(), maxWorkers+1)
+					for i := range works {
+						works[i] = work
 					}
+
+					var err error
+					throttler, err = workpool.NewThrottler(maxWorkers, works)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("should run the passed-in work concurrently up to the max number of workers at a time", func() {
+					throttler.Start()
 
 					for i := 0; i < maxWorkers; i++ {
 						Eventually(calledChan).Should(Receive())
@@ -91,24 +114,24 @@ var _ = Describe("WorkPool", func() {
 		})
 
 		Describe("Stop", func() {
-			It("does not start any newly-submitted work", func() {
-				pool.Stop()
-				pool.Submit(work)
-
-				Consistently(calledChan).ShouldNot(Receive())
-			})
-
 			It("does not start any pending work", func() {
-				for i := 0; i < maxWorkers+1; i++ {
-					pool.Submit(work)
+				works := make([]func(), maxWorkers+1)
+				for i := range works {
+					works[i] = work
 				}
+
+				var err error
+				throttler, err = workpool.NewThrottler(maxWorkers, works)
+				Expect(err).NotTo(HaveOccurred())
+
+				throttler.Start()
 
 				for i := 0; i < maxWorkers; i++ {
 					Eventually(calledChan).Should(Receive())
 				}
 				Consistently(calledChan).ShouldNot(Receive())
 
-				pool.Stop()
+				throttler.Stop()
 				unblockChan <- struct{}{}
 
 				Consistently(calledChan).ShouldNot(Receive())
