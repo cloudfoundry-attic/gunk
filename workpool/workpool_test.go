@@ -25,18 +25,21 @@ var _ = Describe("WorkPool", func() {
 
 	Context("when max workers is positive", func() {
 		var maxWorkers int
-		var calledChan, unblockChan chan struct{}
-		var work func()
+		var calledChan chan int
+		var unblockChan chan struct{}
+		var work func(int) func()
 
 		BeforeEach(func() {
 			maxWorkers = 2
-			calledChan = make(chan struct{})
+			calledChan = make(chan int)
 			unblockChan = make(chan struct{})
-			work = func() {
-				calledChan := calledChan
-				unblockChan := unblockChan
-				calledChan <- struct{}{}
-				<-unblockChan
+			work = func(i int) func() {
+				return func() {
+					calledChan := calledChan
+					unblockChan := unblockChan
+					calledChan <- i
+					<-unblockChan
+				}
 			}
 
 			var err error
@@ -48,11 +51,11 @@ var _ = Describe("WorkPool", func() {
 			Context("when submitting less work than the max number of workers", func() {
 				It("should run the passed-in work", func() {
 					for i := 0; i < maxWorkers-1; i++ {
-						pool.Submit(work)
+						pool.Submit(work(i))
 					}
 
 					for i := 0; i < maxWorkers-1; i++ {
-						Eventually(calledChan).Should(Receive())
+						Eventually(calledChan).Should(Receive(Equal(i)))
 					}
 				})
 			})
@@ -60,11 +63,11 @@ var _ = Describe("WorkPool", func() {
 			Context("when submitting work equal to the number of workers", func() {
 				It("should run the passed-in work concurrently", func() {
 					for i := 0; i < maxWorkers; i++ {
-						pool.Submit(work)
+						pool.Submit(work(i))
 					}
 
 					for i := 0; i < maxWorkers; i++ {
-						Eventually(calledChan).Should(Receive())
+						Eventually(calledChan).Should(Receive(Equal(i)))
 					}
 				})
 			})
@@ -72,17 +75,17 @@ var _ = Describe("WorkPool", func() {
 			Context("when submitting more work than the max number of workers", func() {
 				It("should run the passed-in work concurrently up to the max number of workers at a time", func() {
 					for i := 0; i < maxWorkers+1; i++ {
-						pool.Submit(work)
+						pool.Submit(work(i))
 					}
 
 					for i := 0; i < maxWorkers; i++ {
-						Eventually(calledChan).Should(Receive())
+						Eventually(calledChan).Should(Receive(Equal(i)))
 					}
 					Consistently(calledChan).ShouldNot(Receive())
 
 					unblockChan <- struct{}{}
 
-					Eventually(calledChan).Should(Receive())
+					Eventually(calledChan).Should(Receive(Equal(maxWorkers)))
 				})
 			})
 		})
@@ -90,18 +93,18 @@ var _ = Describe("WorkPool", func() {
 		Describe("Stop", func() {
 			It("does not start any newly-submitted work", func() {
 				pool.Stop()
-				pool.Submit(work)
+				pool.Submit(work(0))
 
 				Consistently(calledChan).ShouldNot(Receive())
 			})
 
 			It("does not start any pending work", func() {
 				for i := 0; i < maxWorkers+1; i++ {
-					pool.Submit(work)
+					pool.Submit(work(i))
 				}
 
 				for i := 0; i < maxWorkers; i++ {
-					Eventually(calledChan).Should(Receive())
+					Eventually(calledChan).Should(Receive(Equal(i)))
 				}
 				Consistently(calledChan).ShouldNot(Receive())
 
