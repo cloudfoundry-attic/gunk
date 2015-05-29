@@ -10,12 +10,6 @@ import (
 var _ = Describe("Throttler", func() {
 	var throttler *workpool.Throttler
 
-	AfterEach(func() {
-		if throttler != nil {
-			throttler.Stop()
-		}
-	})
-
 	Context("when max workers is non-positive", func() {
 		It("errors", func() {
 			_, err := workpool.NewThrottler(0, []func(){})
@@ -33,6 +27,8 @@ var _ = Describe("Throttler", func() {
 			calledChan = make(chan struct{})
 			unblockChan = make(chan struct{})
 			work = func() {
+				calledChan := calledChan
+				unblockChan := unblockChan
 				calledChan <- struct{}{}
 				<-unblockChan
 			}
@@ -43,7 +39,7 @@ var _ = Describe("Throttler", func() {
 			close(unblockChan)
 		})
 
-		Describe("Start", func() {
+		Describe("Work", func() {
 			Context("when requesting less work than the max number of workers", func() {
 				BeforeEach(func() {
 					works := make([]func(), maxWorkers-1)
@@ -57,7 +53,7 @@ var _ = Describe("Throttler", func() {
 				})
 
 				It("should run the passed-in work", func() {
-					throttler.Start()
+					go throttler.Work()
 
 					for i := 0; i < maxWorkers-1; i++ {
 						Eventually(calledChan).Should(Receive())
@@ -78,7 +74,7 @@ var _ = Describe("Throttler", func() {
 				})
 
 				It("should run the passed-in work concurrently", func() {
-					throttler.Start()
+					go throttler.Work()
 
 					for i := 0; i < maxWorkers; i++ {
 						Eventually(calledChan).Should(Receive())
@@ -99,7 +95,7 @@ var _ = Describe("Throttler", func() {
 				})
 
 				It("should run the passed-in work concurrently up to the max number of workers at a time", func() {
-					throttler.Start()
+					go throttler.Work()
 
 					for i := 0; i < maxWorkers; i++ {
 						Eventually(calledChan).Should(Receive())
@@ -110,31 +106,6 @@ var _ = Describe("Throttler", func() {
 
 					Eventually(calledChan).Should(Receive())
 				})
-			})
-		})
-
-		Describe("Stop", func() {
-			It("does not start any pending work", func() {
-				works := make([]func(), maxWorkers+1)
-				for i := range works {
-					works[i] = work
-				}
-
-				var err error
-				throttler, err = workpool.NewThrottler(maxWorkers, works)
-				Expect(err).NotTo(HaveOccurred())
-
-				throttler.Start()
-
-				for i := 0; i < maxWorkers; i++ {
-					Eventually(calledChan).Should(Receive())
-				}
-				Consistently(calledChan).ShouldNot(Receive())
-
-				throttler.Stop()
-				unblockChan <- struct{}{}
-
-				Consistently(calledChan).ShouldNot(Receive())
 			})
 		})
 	})

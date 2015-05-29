@@ -21,25 +21,19 @@ type WorkPool struct {
 }
 
 func NewWorkPool(maxWorkers int) (*WorkPool, error) {
-	return newWorkPoolWithPending(maxWorkers, 0)
-}
-
-func newWorkPoolWithPending(maxWorkers, pending int) (*WorkPool, error) {
-	if maxWorkers < 1 || pending < 0 {
-		return nil, fmt.Errorf(
-			"must provide positive maxWorkers and non-negative pending; provided %d maxWorkers and %d pending",
-			maxWorkers,
-			pending,
-		)
+	if maxWorkers < 1 {
+		return nil, fmt.Errorf("must provide positive maxWorkers; provided %d", maxWorkers)
 	}
 
-	w := &WorkPool{
+	return newWorkPoolWithPending(maxWorkers, 0), nil
+}
+
+func newWorkPoolWithPending(maxWorkers, pending int) *WorkPool {
+	return &WorkPool{
 		workQueue:  make(chan func(), maxWorkers+pending),
 		stopping:   make(chan struct{}),
 		maxWorkers: maxWorkers,
 	}
-
-	return w, nil
 }
 
 func (w *WorkPool) Submit(work func()) {

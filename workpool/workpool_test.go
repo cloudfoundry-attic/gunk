@@ -33,6 +33,8 @@ var _ = Describe("WorkPool", func() {
 			calledChan = make(chan struct{})
 			unblockChan = make(chan struct{})
 			work = func() {
+				calledChan := calledChan
+				unblockChan := unblockChan
 				calledChan <- struct{}{}
 				<-unblockChan
 			}
@@ -40,11 +42,6 @@ var _ = Describe("WorkPool", func() {
 			var err error
 			pool, err = workpool.NewWorkPool(maxWorkers)
 			Expect(err).NotTo(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			close(calledChan)
-			close(unblockChan)
 		})
 
 		Describe("Submit", func() {

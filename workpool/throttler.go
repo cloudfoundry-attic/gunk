@@ -1,21 +1,25 @@
 package workpool
 
+import (
+	"fmt"
+	"sync"
+)
+
 type Throttler struct {
 	pool  *WorkPool
 	works []func()
 }
 
 func NewThrottler(maxWorkers int, works []func()) (*Throttler, error) {
-	var numWorkers int
-	if len(works) < maxWorkers {
-		numWorkers = len(works)
-	} else {
-		numWorkers = maxWorkers
+	if maxWorkers < 1 {
+		return nil, fmt.Errorf("must provide positive maxWorkers; provided %d", maxWorkers)
 	}
 
-	pool, err := newWorkPoolWithPending(numWorkers, len(works)-numWorkers)
-	if err != nil {
-		return nil, err
+	var pool *WorkPool
+	if len(works) < maxWorkers {
+		pool = newWorkPoolWithPending(len(works), 0)
+	} else {
+		pool = newWorkPoolWithPending(maxWorkers, len(works)-maxWorkers)
 	}
 
 	return &Throttler{
@@ -24,12 +28,17 @@ func NewThrottler(maxWorkers int, works []func()) (*Throttler, error) {
 	}, nil
 }
 
-func (t *Throttler) Stop() {
-	t.pool.Stop()
-}
+func (t *Throttler) Work() {
+	defer t.pool.Stop()
 
-func (t *Throttler) Start() {
+	wg := sync.WaitGroup{}
+	wg.Add(len(t.works))
 	for _, work := range t.works {
-		t.pool.Submit(work)
+		work := work
+		t.pool.Submit(func() {
+			defer wg.Done()
+			work()
+		})
 	}
+	wg.Wait()
 }
