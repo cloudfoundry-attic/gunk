@@ -1,4 +1,4 @@
-package diegonats
+package gnatsdrunner
 
 import (
 	"fmt"
@@ -7,16 +7,17 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/cloudfoundry/gunk/diegonats"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/ginkgomon"
 )
 
-func StartGnatsd(natsPort int) (ifrit.Process, NATSClient) {
+func StartGnatsd(natsPort int) (ifrit.Process, diegonats.NATSClient) {
 	ginkgomonRunner := NewGnatsdTestRunner(natsPort)
 	gnatsdProcess := ifrit.Envoke(ginkgomonRunner)
 
-	natsClient := NewClient()
+	natsClient := diegonats.NewClient()
 	_, err := natsClient.Connect([]string{fmt.Sprintf("nats://127.0.0.1:%d", natsPort)})
 	Expect(err).ShouldNot(HaveOccurred())
 

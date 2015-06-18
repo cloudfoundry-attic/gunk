@@ -3,7 +3,7 @@ package diegonats_test
 import (
 	"testing"
 
-	"github.com/cloudfoundry/gunk/diegonats"
+	"github.com/cloudfoundry/gunk/diegonats/gnatsdrunner"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"
@@ -26,7 +26,7 @@ var _ = AfterSuite(func() {
 })
 
 func startNATS() {
-	gnatsdProcess = ginkgomon.Invoke(diegonats.NewGnatsdTestRunner(natsPort))
+	gnatsdProcess = ginkgomon.Invoke(gnatsdrunner.NewGnatsdTestRunner(natsPort))
 }
 
 func stopNATS() {
