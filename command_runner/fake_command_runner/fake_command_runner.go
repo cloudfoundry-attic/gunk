@@ -172,7 +172,7 @@ func (r *FakeCommandRunner) Kill(cmd *exec.Cmd) error {
 	r.Lock()
 	defer r.Unlock()
 
-	r.killedCommands = append(r.waitedCommands, cmd)
+	r.killedCommands = append(r.killedCommands, cmd)
 
 	return nil
 }
@@ -226,6 +226,13 @@ func (r *FakeCommandRunner) KilledCommands() []*exec.Cmd {
 	defer r.RUnlock()
 
 	return r.killedCommands
+}
+
+func (r *FakeCommandRunner) WaitedCommands() []*exec.Cmd {
+	r.RLock()
+	defer r.RUnlock()
+
+	return r.waitedCommands
 }
 
 func (r *FakeCommandRunner) SignalledCommands() map[*exec.Cmd]os.Signal {
