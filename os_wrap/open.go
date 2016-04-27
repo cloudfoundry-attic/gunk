@@ -2,6 +2,8 @@ package os_wrap
 
 import real_os "os"
 
+
+/* builds golang native os object */
 func NewOs() Os {
 	return new(_os)
 }

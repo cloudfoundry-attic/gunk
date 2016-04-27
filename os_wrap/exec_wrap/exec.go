@@ -4,7 +4,7 @@ import (
 	"os/exec"
 )
 
-
+/* builds golang native exec object */
 func NewExec() Exec {
 	return new(_exec)
 }
