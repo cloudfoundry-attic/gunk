@@ -75,7 +75,7 @@ func (w *WorkPool) addWorker() bool {
 func (w *WorkPool) workerStopping(force bool) bool {
 	w.mutex.Lock()
 	if !force {
-		if len(w.workQueue) < w.numWorkers {
+		if len(w.workQueue) <= w.numWorkers {
 			w.mutex.Unlock()
 			return false
 		}
