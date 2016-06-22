@@ -5,7 +5,7 @@ With this you can mock exec system calls. Please add to this interface
 and implementations with other calls that are to be mocked.
 
 The fake/mock implementation is in an aptly named subdirectory.
- */
+*/
 package exec_wrap
 
 import (
@@ -16,7 +16,7 @@ import (
 
 /*
 Wraps cmd calls.
- */
+*/
 type Cmd interface {
 	Start() error
 	StdoutPipe() (io.ReadCloser, error)
@@ -28,7 +28,7 @@ type Cmd interface {
 
 /*
 Wraps http client side calls.
- */
+*/
 type Exec interface {
 	Command(name string, arg ...string) Cmd
 }
