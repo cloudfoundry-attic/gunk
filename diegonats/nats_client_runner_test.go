@@ -6,10 +6,10 @@ import (
 	"os"
 	"time"
 
+	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/cloudfoundry/gunk/diegonats"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-golang/lager/lagertest"
 
 	"github.com/tedsuo/ifrit"
 )
